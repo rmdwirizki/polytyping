@@ -1,2 +1,9 @@
-# polytyping
-An example application for Typing Speed Test built with Polymer 2
+## Installation just do..
+
+```
+bower install
+```
+
+And run the index.html
+
+> Highly inspired by : https://www.livechatinc.com/typing-speed-test/#/

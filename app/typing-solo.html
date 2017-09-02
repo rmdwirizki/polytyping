@@ -1,0 +1,108 @@
+<link rel="import" href="elements/app-navbar.html">
+<link rel="import" href="elements/app-banner.html">
+<link rel="import" href="elements/app-arena.html">
+
+<link rel="import" href="../bower_components/polymer/polymer.html">
+
+<dom-module id="typing-solo">
+  <template>
+    <style>
+      :host {
+        --app-primary-font   : 'Ubuntu', 'cursive';
+        --app-primary-color  : #43C6AC;
+        --app-secondary-color: #191654;
+        --app-inverted-color : #ffffff;
+        /* 
+          --app-primary-color:#f0db4f;
+          --app-secondary-color  : #f0db4f;
+          --app-inverted-color : #000; 
+        */
+
+        --app-navbar-height : 40px;
+
+        width : 100vw;
+        height: 100vh;
+
+        display: grid;
+        grid-template-rows: auto 3fr 1fr;
+      }
+    </style>
+
+    <app-navbar setting="{{options}}"
+      is-playing=[[isPlaying]]></app-navbar>
+    <app-banner setting="{{options}}"
+      wpm =[[stats.wpm]] 
+      cpm =[[stats.cpm]] 
+      acc =[[stats.acc]] 
+      time=[[stats.time]]></app-banner>
+    <app-arena setting="{{options}}"
+      is-playing={{isPlaying}}
+      results={{stats}}></app-arena>
+
+  </template>
+
+  <script>
+    class TypingSolo extends Polymer.Element {
+      static get is() { return "typing-solo" }
+      static get properties() {
+        return {
+          // Initial playing state
+          isPlaying: {
+            type : Boolean,
+            value: false
+          },
+
+          // Initial stats value
+          stats: {
+            type  : Object,
+            value : { time: -1, wpm : 0, cpm : 0, acc : 0 }
+          },
+
+          // Options getter for parent attribute
+          duration: Number,
+          language: String,
+
+          // Initial options value
+          options: {
+            type: Object,
+            value: { duration: 60, language: 'en' }
+          },
+
+          _timer: Object
+        }
+      }
+      static get observers() {
+        return [
+          '_initialLanguageChanged(language)',
+          '_initialDurationChanged(duration)',
+          '_isPlayingChanged(isPlaying)'
+        ]
+      }
+
+      // Init only on <typing-solo duration=xxx></typing-solo>
+      _initialDurationChanged(duration) {
+        this.set('stats.time', duration)
+        this.set('options.duration', duration)
+      }
+      // Init only on <typing-solo language=xxx></typing-solo>
+      _initialLanguageChanged(language) {
+        this.set('options.language', language)
+      }
+      
+      _isPlayingChanged(isPlaying) {
+        if (isPlaying) {
+          const self  = this
+          this._timer = setInterval(function() {
+            if (self.stats.time > 0) {
+              self.set('stats.time', self.stats.time - 1)
+            }
+          }, 1000)
+        }
+        else {
+          clearInterval(this._timer)
+        }
+      }
+    }
+    customElements.define(TypingSolo.is, TypingSolo);
+  </script>
+</dom-module>

@@ -1,0 +1,126 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/app-localize-behavior/app-localize-behavior.html">
+
+<dom-module id="app-banner">
+  <template>
+    <style>
+      :host {
+        background: var(--app-primary-color);  /* fallback for old browsers */
+        background: -webkit-linear-gradient(to right, var(--app-secondary-color), var(--app-primary-color));  /* Chrome 10-25, Safari 5.1-6 */
+        background: linear-gradient(to right, var(--app-secondary-color), var(--app-primary-color)); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+
+        font-family: var(--app-primary-font);
+        color: var(--app-inverted-color);
+        text-transform: uppercase;
+
+        /* border-bottom: 3px solid var(--app-primary-color); */
+      }
+      .statistics {
+        display: flex;
+        flex-direction: row;
+      }
+      .statistics > div {
+        padding: 20px;
+      }
+      .statistics > div, .countdown {
+        text-align: center;
+      }
+
+      .title {
+        font-weight: bold;
+        font-size: 2.75em;
+        margin-bottom: 20px;
+      }
+      .counter {
+        font-family: var(--app-primary-font);
+        font-size: 2.75em;
+        margin-bottom: 10px;
+      }
+      .counter + div {
+        font-size: 0.9em;
+      }
+    </style>
+    <div class="title">{{localize('title', '', 'Typing Polymer')}}</div>
+    <div class="statistics">
+      <div>
+        <div class="counter">[[wpm]]</div>
+        <div>
+          {{localize('wpm', '', 'WPM')}}
+        </div>
+      </div>
+      <div>
+        <div class="counter">[[cpm]]</div>
+        <div>
+          {{localize('cpm', '', 'CPM')}}
+        </div>
+      </div>
+      <div>
+        <div class="counter">[[acc]]</div>
+        <div>
+          {{localize('acc', '', 'ACC')}}
+        </div>
+      </div>
+    </div>
+    <div class="countdown">
+      <div class="counter">[[time]]</div>
+      <div>
+        {{localize('time', '', 'SEC')}}
+      </div>
+    </div>
+  </template>
+
+  <script>
+    class AppBanner extends Polymer.mixinBehaviors([Polymer.AppLocalizeBehavior], Polymer.Element) {
+      static get is() { return "app-banner" }
+      static get properties() {
+        return {
+          // Localize Behavior
+          language: {
+            type : String,
+            value: 'en'
+          },
+          // Initialize locale data
+          resources: {
+            value() {
+              return {
+                'en': { 
+                  'title': 'Typing Speed Test',
+                  'wpm'  : 'words / min',
+                  'cpm'  : 'chars / min',
+                  'acc'  : '% accuracy',
+                  'time' : 'seconds',
+                },
+                'id': { 
+                  'title': 'Tes Mengetik Cepat',
+                  'wpm'  : 'kata / menit',
+                  'cpm'  : 'huruf / menit',
+                  'acc'  : '% akurasi',
+                  'time' : 'detik',
+                },
+              }
+            }
+          },
+
+          // Inherit
+          setting: Object,
+        }
+      }
+      static get observers() {
+        return [
+          '_languageOptionChanged(setting.language)'
+        ]
+      }
+
+      // Called when language options (global setting) changed
+      _languageOptionChanged(language) {
+        this.set('language', language)
+      }
+    }
+    customElements.define(AppBanner.is, AppBanner);
+  </script>
+</dom-module>

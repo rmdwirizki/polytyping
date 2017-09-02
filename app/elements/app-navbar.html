@@ -1,0 +1,95 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<dom-module id="app-navbar">
+  <template>
+    <style>
+      :host {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        height: var(--app-navbar-height);
+        padding: 20px;
+
+        background: var(--app-primary-color);  /* fallback for old browsers */
+        background: -webkit-linear-gradient(to right, var(--app-secondary-color), var(--app-primary-color));  /* Chrome 10-25, Safari 5.1-6 */
+        background: linear-gradient(to right, var(--app-secondary-color), var(--app-primary-color)); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+
+        opacity: 0.8;
+      }
+      .locales[is-playing] {
+        display: none;
+      }
+      a, .locales span {
+        color: var(--app-inverted-color);
+        text-decoration: none;
+        font-size: 1.5em;
+        font-family: var(--app-primary-font);
+      } 
+      .locales span[active] {
+        background: rgba(255,255,255,.4);
+        padding: 10px;
+        border-radius: 50%;
+      }
+      .locales span.separator {
+        margin: 0px 10px;
+        opacity: .5;
+      }
+      .locales span:not(.separator):hover {
+        cursor: pointer;
+      }
+    </style>
+    <a href="https://github.com/rangerkuning/polytyping">Ngoding.xyz</a>
+    <div class="locales" is-playing$="{{isPlaying}}">
+      <span active$="{{isActiveLang.en}}" 
+        on-click="changeActiveLanguage" data-value="en">EN</span>
+      <span class="separator">|</span>
+      <span active$="{{isActiveLang.id}}" 
+        on-click="changeActiveLanguage" data-value="id">ID</span>
+    </div>
+  </template>
+
+  <script>
+    class AppNavbar extends Polymer.Element {
+      static get is() { return "app-navbar" }
+      static get properties() {
+        return {
+          activeLang: String,
+          isActiveLang: {
+            type: Object,
+            computed: "_activeLangChanged(activeLang)"
+          },
+          // Inherited properties
+          setting: {
+            type: Object, notify: true
+          },
+        }
+      }
+      static get observers() {
+        return [
+          '_languageOptionChanged(setting.language)'
+        ]
+      }
+
+      // Called when language options (global setting) changed
+      _languageOptionChanged(language) {
+        this.set('activeLang', language)
+      }
+
+      // Change language on click event
+      changeActiveLanguage(e) {
+        const lang = e.target.getAttribute('data-value')
+        this.set('setting.language', lang)
+      }
+
+      // For navbar active item
+      _activeLangChanged(lang) {
+        return {
+          'en': lang == 'en',
+          'id': lang == 'id'
+        }
+      }
+    }
+    customElements.define(AppNavbar.is, AppNavbar);
+  </script>
+</dom-module>

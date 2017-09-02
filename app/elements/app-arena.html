@@ -1,0 +1,434 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-a11y-keys/iron-a11y-keys.html">
+<link rel="import" href="../../bower_components/app-localize-behavior/app-localize-behavior.html">
+
+<link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../bower_components/neon-animation/web-animations.html">
+<link rel="import" href="../../bower_components/neon-animation/animations/scale-up-animation.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+
+<dom-module id="app-arena">
+  <template>
+    <style>
+      :host {
+        display: flex;
+        align-items: center
+      }
+
+      .play.button {
+        font-family: var(--app-primary-font);
+        font-size: 2em;
+        padding: 20px 80px;
+        color: var(--app-inverted-color);
+        position: relative;
+        border: 3px solid;
+        border-color: rgba(255,255,255,.2);
+        transition: border .5s ease-in-out
+      }
+      .play.button:hover {
+        cursor: pointer;
+        border-color: rgba(255,255,255,0)
+      }
+      
+      /* Button hover effect */
+      /* https://codemyui.com/css-button-border-hover-effects/ */
+
+      .play.button::before, .play.button::after {
+        width: 100%;
+        height:100%;
+        z-index: 3;
+        content:'';
+        position: absolute;
+        top:0;
+        left:0;
+        box-sizing: border-box;
+        transform: scale(0);
+        transition: transform 0.5s
+      }
+      .play.button::before {
+        border-bottom: 3px solid var(--app-inverted-color);
+        border-left: 3px solid var(--app-inverted-color);
+        transform-origin: 100% 0%
+      }
+      .play.button::after {
+        border-top: 3px solid var(--app-inverted-color);
+        border-right: 3px solid var(--app-inverted-color);
+        transform-origin: 0% 100%
+      }
+      .play.button:hover::after, .play.button:hover::before {
+        transform: scale(1)
+      }
+
+      /* Typing Area */
+
+      .arena[is-playing] + .block {
+        display: none
+      }
+      .arena[is-playing] {
+        display: inline-flex
+      }
+      .arena + .block {
+        background: var(--app-primary-color);  /* fallback for old browsers */
+        background: -webkit-linear-gradient(to right, var(--app-secondary-color), var(--app-primary-color));  /* Chrome 10-25, Safari 5.1-6 */
+        background: linear-gradient(to right, var(--app-secondary-color), var(--app-primary-color)); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center
+      }
+      .arena {
+        font-family: var(--app-primary-font);
+        font-size: 2em;
+        color: rgba(1,1,1,.3);
+        width: 100vw;
+        height: 100%;
+        display: none;
+        align-items: center;
+        white-space: nowrap
+      }
+      .arena:hover {
+        cursor: text
+      }
+      .arena > .block {
+        width: 50%;
+        overflow: hidden
+      }
+      .left.block {
+        text-align: right
+      }
+      .left.block > .line {
+        float: right
+      }
+      .left.block .word[wrong] {
+        color: var(--app-primary-color);
+        text-decoration: line-through
+      }
+      .left.block .word {
+        color: var(--app-secondary-color);
+      }
+      
+      /* Highlight next word: looks like doesn't needed anymore */
+
+      /* 
+        .right.block .word:first-child {
+          background: #eee8aa;
+          padding: 5px 0px
+        } 
+      */
+
+      .word:empty {
+        margin-right: 5px
+      }
+
+      /* Input */
+
+      input {
+        font-size: 1em;
+        width  : 2px;
+        border : none;
+        outline: none;
+        color  : var(--app-secondary-color);
+        -webkit-text-fill-color: transparent;
+        background-color: var(--app-inverted-color)
+      }
+
+      /* Results Dialog */
+
+      paper-dialog {
+        width: 300px;
+      }
+      .result.header {
+        background: linear-gradient(to right, var(--app-secondary-color), var(--app-primary-color));
+        color: var(--app-inverted-color);
+        font-family: var(--app-primary-font);
+        font-size: 1.3em;
+        text-align: center;
+        margin-top: 0px;
+        padding: 15px;
+      }
+      .result.box {
+        font-size: 1.25em; 
+        display: grid;
+        grid-template-columns: auto 1fr;
+        grid-gap: 0px 10px;
+      }
+      .result.box > *:nth-child(odd) { text-align: right }
+    </style>
+
+    <iron-a11y-keys target="[[target]]" keys="[[alphanumericKeys]]"
+      on-keys-pressed="typing"></iron-a11y-keys>
+    <iron-a11y-keys target="[[target]]" keys="space"
+      on-keys-pressed="spacing"></iron-a11y-keys>
+    <iron-a11y-keys target="[[target]]" keys="backspace"
+      on-keys-pressed="backspacing"></iron-a11y-keys>
+
+    <div class="arena" on-click="focus" is-playing$="{{isPlaying}}">
+      <div class="left block">
+        <div class="line">
+          <template is="dom-repeat" items="[[inactiveLine]]" as="item">
+            <span class="word" wrong$="[[item.wrong]]">[[item.word]]</span>
+          </template>
+        </div>
+      </div>
+      <input type="text" autofocus="autofocus" value="[[typer::input]]">
+      <div class="right block">
+        <div class="line">
+          <template is="dom-repeat" items="[[activeLine]]" as="item">
+            <span class="word">[[item]]</span>
+          </template>
+        </div>
+      </div>
+    </div>
+    <div class="block">
+      <div class="play button" on-click="start">
+        {{localize('start-button', '', 'Start')}}
+      </div>
+    </div>
+
+    <paper-dialog id="modal" modal on-iron-overlay-closed="stop"
+      entry-animation="scale-up-animation">
+      <div class="result header">Results</div>
+      <div class="result box">
+        <strong>{{results.wpm}}</strong><span>WPM</span>
+        <strong>{{results.cpm}}</strong><span>CPM</span>
+        <strong>{{results.acc}}</strong><span>%(<em>Accuracy</em>)</span>
+      </div>
+      <div class="buttons">
+        <paper-button dialog-dismiss>OK</paper-button>
+      </div>
+    </paper-dialog>
+
+  </template>
+
+  <script>
+    class AppArena extends Polymer.mixinBehaviors([Polymer.AppLocalizeBehavior], Polymer.Element) {
+      static get is() { return "app-arena" }
+      static get properties() {
+        return {
+          // Localize Behavior
+          language: {
+            type : String,
+            value: 'en'
+          },
+          // Initialize locale data
+          resources: {
+            value() {
+              return {
+                'en': { 'start-button': 'Start Typing' },
+                'id': { 'start-button': 'Mulai Mengetik' }
+              }
+            }
+          },
+
+          typer       : String,
+          inactiveLine: Array,
+          activeLine  : Array,
+          currentWord : String,
+          words       : Array,
+
+          // Iron-a11-keys properties
+          target: Object,
+          alphanumericKeys: {
+            type: String,
+            value: 'a b c d e f g h i j k l m n o p q r s t u v w x y z \
+              0 1 2 3 4 5 6 7 8 9'
+          },
+
+          // Inherit from <typing-solo>
+          isPlaying: {
+            type: Boolean, notify: true
+          },
+          setting: Object,
+          results: Object,
+
+          // Private properties
+          _counts: {
+            type: Object,
+            value: {
+              'wrongWords'  : 0,
+              'correctWords': 0,
+              'correctChars': 0
+            }
+          }
+        }
+      }
+      static get observers() {
+        return [
+          '_timeChanged(results.time)',
+          '_languageOptionChanged(setting.language)'
+        ]
+      }
+
+      // Called on every second interval
+      _timeChanged(seconds) {
+        this.updateResults()
+        if (seconds == 0) {
+          this.$.modal.toggle()
+        }
+      }
+      // Called when language options (global setting) changed
+      _languageOptionChanged(language) {
+        const self = this
+        this.set('language', language)
+        this.loadWords('data/words-' + language + '.json', function(response) {
+          self.words = JSON.parse(response)
+          
+          self.shuffleWords(self.words)
+          self.set('activeLine', self.words)
+          self.set('inactiveLine', [{wrong: false, word: ''}])
+          self.currentWord = self.activeLine[0]
+        })
+      }
+
+      ready() {
+        super.ready()
+        this.target = this.shadowRoot.querySelector('input')
+        // Input autofocus not working on firefox
+        this.focus(false)
+      }
+
+      start() {
+        this.set('isPlaying', true)
+        this.reset()
+        this.focus(false)
+      }
+
+      stop() {
+        this.set('isPlaying', false)
+      }
+      
+      reset() {
+        this.set('activeLine', [])
+        this.shuffleWords(this.words)
+        this.set('activeLine', this.words)
+        this.set('inactiveLine', [{wrong: false, word: ''}])
+        this.currentWord = this.activeLine[0]
+        this.typer = ''
+
+        this.set('_counts.wrongWords',   0)
+        this.set('_counts.correctWords', 0)
+        this.set('_counts.correctChars', 0)
+
+        this.set('results.time', this.setting.duration)
+
+        this.focus(false)
+      }
+      
+      focus(e) {
+        this.shadowRoot.querySelector('input').focus()
+      }
+
+      typing(e) {
+        const currentKey = e.detail.key
+        const nextChar   = this.activeLine[0].charAt(0)
+        const prevIndex  = this.inactiveLine.length - 1
+        const nextWord   = this.activeLine[0]
+        const prevWord   = this.inactiveLine[prevIndex].word
+        
+        let isWrong = false
+
+        if (currentKey == nextChar && this.isMatch()) {
+          this.set('activeLine.0', nextWord.substr(1))
+        }
+        else {
+          isWrong = true
+        }
+        this.set(
+          'inactiveLine.' + prevIndex, {
+            wrong: isWrong, 
+            word: prevWord + currentKey
+          }
+        )
+      }
+
+      spacing(e) {
+        const prevIndex  = this.inactiveLine.length - 1
+        const nextWord   = this.activeLine[0]
+        const prevWord   = this.inactiveLine[prevIndex].word
+
+        // Don't process
+        if (prevWord == '' && nextWord == this.currentWord) {
+          return;
+        } 
+        // Wrong 
+        if (prevWord != this.currentWord) {
+          this.set('inactiveLine.' + prevIndex + '.wrong', true)
+          this._counts.wrongWords++
+        }
+        // Correct 
+        else {
+          this._counts.correctWords++
+          this._counts.correctChars += this.currentWord.length
+        }
+        // Get new words to type
+        this.push('inactiveLine', {wrong: false, word: ''})
+        this.shift('activeLine')
+        this.currentWord = this.activeLine[0]
+      }
+
+      backspacing(e) {
+        const prevIndex = this.inactiveLine.length - 1
+        const nextWord  = this.activeLine[0]
+        const prevWord  = this.inactiveLine[prevIndex].word
+
+        if (this.isMatch()) {
+          this.set('activeLine.0', prevWord.slice(-1) + nextWord)
+        }
+        this.set('inactiveLine.' + prevIndex + '.word', prevWord.slice(0, -1))
+        this.set('inactiveLine.' + prevIndex + '.wrong', !this.isMatch())
+
+        this.typer = ''
+      }
+
+      isMatch() {
+        return this.inactiveLine[this.inactiveLine.length - 1].word + 
+          this.activeLine[0] == this.currentWord
+      }
+
+      // Fish-Yates
+      shuffleWords(array){
+        var count = array.length,
+            randomnumber,
+            temp
+            
+        while(count){
+          randomnumber = Math.random() * count-- | 0
+          temp = array[count]
+          array[count] = array[randomnumber]
+          array[randomnumber] = temp
+        }
+      }
+
+      loadWords(filepath, callback) {
+        const xobj = new XMLHttpRequest()
+        xobj.overrideMimeType("application/json")
+        xobj.open('GET', filepath, true)
+        xobj.onreadystatechange = function () {
+          if (xobj.readyState === 4 && xobj.status === 200) {
+            callback(xobj.responseText)
+          }
+        }
+        xobj.send(null)
+      }
+
+      updateResults() {
+        const finishedWords = this._counts.wrongWords + this._counts.correctWords
+        const elapsedTimes  = this.setting.duration - this.results.time
+
+        const acc = (finishedWords == 0) ? 0
+          : (this._counts.correctWords / finishedWords) * 100
+        const wpm = (elapsedTimes == 0)  ? 0
+          : (60 * this._counts.correctWords) / elapsedTimes
+        const cpm = (elapsedTimes == 0)  ? 0
+          : (60 * this._counts.correctChars) / elapsedTimes
+
+        this.set('results.acc', Math.ceil(acc))
+        this.set('results.wpm', Math.ceil(wpm))
+        this.set('results.cpm', Math.ceil(cpm))
+      }
+    }
+    customElements.define(AppArena.is, AppArena);
+  </script>
+</dom-module>
