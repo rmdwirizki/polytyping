@@ -4,6 +4,6 @@
 bower install
 ```
 
-And run the index.html
+And open index.html directly on the browser
 
 > Highly inspired by : https://www.livechatinc.com/typing-speed-test/#/
